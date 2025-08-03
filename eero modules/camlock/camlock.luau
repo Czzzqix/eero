@@ -96,8 +96,9 @@ local function Notify(text, color, duration, size)
     end)
 end
 
---// FOV Circle Drawing
-local FOVCircle = Drawing.new("Circle")
+--// FOV Circle Drawing (Separate circles for fill and outline)
+local FOVCircleFilled = Drawing.new("Circle")  -- Filled background circle
+local FOVCircleOutline = Drawing.new("Circle") -- Outline circle
 
 --// Prediction Display
 local PredDisplay = Drawing.new("Text")
@@ -279,14 +280,27 @@ end
 RunService.RenderStepped:Connect(function()
     local mousePos = UserInputService:GetMouseLocation()
     
-    -- Update FOV Circle
-    FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
-    FOVCircle.Radius = camlockSettings.FOVRadius
-    FOVCircle.Thickness = camlockSettings.FOVThickness
-    FOVCircle.Color = camlockSettings.FOVColor
-    FOVCircle.Filled = camlockSettings.FOVFilled
-    FOVCircle.Transparency = camlockSettings.FOVTransparency
-    FOVCircle.Visible = camlockSettings.showFOV and camlockSettings.useFOV
+    -- Update FOV Circles (Separate filled and outline for polished look)
+    local mousePos = UserInputService:GetMouseLocation()
+    local showFOV = camlockSettings.showFOV and camlockSettings.useFOV
+    
+    -- Filled Circle (Background - more transparent/clear)
+    FOVCircleFilled.Position = Vector2.new(mousePos.X, mousePos.Y)
+    FOVCircleFilled.Radius = camlockSettings.FOVRadius
+    FOVCircleFilled.Thickness = 1
+    FOVCircleFilled.Color = camlockSettings.FOVColor
+    FOVCircleFilled.Filled = camlockSettings.FOVFilled
+    FOVCircleFilled.Transparency = camlockSettings.FOVTransparency + 0.2 -- More transparent (clearer)
+    FOVCircleFilled.Visible = showFOV and camlockSettings.FOVFilled
+    
+    -- Outline Circle (Solid border - less transparent)
+    FOVCircleOutline.Position = Vector2.new(mousePos.X, mousePos.Y)
+    FOVCircleOutline.Radius = camlockSettings.FOVRadius
+    FOVCircleOutline.Thickness = camlockSettings.FOVThickness
+    FOVCircleOutline.Color = camlockSettings.FOVColor
+    FOVCircleOutline.Filled = false
+    FOVCircleOutline.Transparency = math.max(0, camlockSettings.FOVTransparency - 0.3) -- More solid (less transparent)
+    FOVCircleOutline.Visible = showFOV
 
     -- Get live ping and prediction
     local rawPing = GetLivePing()
@@ -361,7 +375,8 @@ end)
 
 --// Cleanup function
 local function Cleanup()
-    if FOVCircle then FOVCircle:Remove() end
+    if FOVCircleFilled then FOVCircleFilled:Remove() end
+    if FOVCircleOutline then FOVCircleOutline:Remove() end
     if PredDisplay then PredDisplay:Remove() end
     if TargetHighlight then TargetHighlight:Remove() end
 end
