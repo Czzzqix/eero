@@ -295,29 +295,21 @@ RunService.RenderStepped:Connect(function()
     local mousePos = UserInputService:GetMouseLocation()
     
     -- FOV Fill Circle
-    if camlockSettings.showFOVFill then
-        FOVCircleFilled.Position = Vector2.new(mousePos.X, mousePos.Y)
-        FOVCircleFilled.Radius = camlockSettings.FOVRadius
-        FOVCircleFilled.Color = camlockSettings.FOVFillColor
-        FOVCircleFilled.Filled = true
-        FOVCircleFilled.Transparency = camlockSettings.FOVFillTransparency
-        FOVCircleFilled.Visible = true
-    else
-        FOVCircleFilled.Visible = false
-    end
+    FOVCircleFilled.Position = Vector2.new(mousePos.X, mousePos.Y)
+    FOVCircleFilled.Radius = camlockSettings.FOVRadius
+    FOVCircleFilled.Color = camlockSettings.FOVFillColor
+    FOVCircleFilled.Filled = true
+    FOVCircleFilled.Transparency = camlockSettings.FOVFillTransparency
+    FOVCircleFilled.Visible = camlockSettings.showFOVFill
     
-    -- FOV Outline Circle
-    if camlockSettings.showFOVOutline then
-        FOVCircleOutline.Position = Vector2.new(mousePos.X, mousePos.Y)
-        FOVCircleOutline.Radius = camlockSettings.FOVRadius
-        FOVCircleOutline.Thickness = camlockSettings.FOVOutlineThickness
-        FOVCircleOutline.Color = camlockSettings.FOVOutlineColor
-        FOVCircleOutline.Filled = false
-        FOVCircleOutline.Transparency = camlockSettings.FOVOutlineTransparency
-        FOVCircleOutline.Visible = true
-    else
-        FOVCircleOutline.Visible = false
-    end
+    -- FOV Outline Circle  
+    FOVCircleOutline.Position = Vector2.new(mousePos.X, mousePos.Y)
+    FOVCircleOutline.Radius = camlockSettings.FOVRadius
+    FOVCircleOutline.Thickness = camlockSettings.FOVOutlineThickness
+    FOVCircleOutline.Color = camlockSettings.FOVOutlineColor
+    FOVCircleOutline.Filled = false
+    FOVCircleOutline.Transparency = camlockSettings.FOVOutlineTransparency
+    FOVCircleOutline.Visible = camlockSettings.showFOVOutline
 
     -- Get live ping and prediction
     local rawPing = GetLivePing()
