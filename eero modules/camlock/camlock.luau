@@ -6,9 +6,17 @@ local Stats = game:GetService("Stats")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
---// Eero Main Table
-local eero = {}
-eero.camlock = {}
+--// Get or create the global Eero table
+if not getgenv().eero then
+    getgenv().eero = {}
+end
+
+local eero = getgenv().eero
+
+--// Initialize camlock module if it doesn't exist
+if not eero.camlock then
+    eero.camlock = {}
+end
 
 --// Camlock Settings
 local eeroCamlock = {
@@ -64,8 +72,20 @@ local eeroCamlock = {
 -- Expose settings to global
 eero.camlock = eeroCamlock
 
--- Make eero global
-getgenv().eero = eero
+--// Print setup message
+print("Eero Camlock loaded!")
+print("Usage examples:")
+print("local camlock = eero.camlock")
+print("camlock.enabled = true/false")
+print("camlock.FOVRadius = 120")
+print("camlock.useFOV = true/false")
+print("camlock.autoPrediction = true/false")
+print("camlock.enablePrediction = true/false")
+print("camlock.predictionValue = 0.107")
+print("camlock.notifications = true/false")
+
+-- Return the module for local usage
+return eero.camlock
 
 --// State
 local Target = nil
@@ -384,16 +404,16 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
 end)
 
 --// Print setup message
-print("Eero Camlock loaded! - Fully Configurable Version")
-print("Basic Usage:")
-print("eero.camlock.enabled = true/false")
-print("eero.camlock.FOVRadius = 120")
-print("eero.camlock.showFOV = true/false")
-print("eero.camlock.FOVColor = Color3.fromRGB(255, 0, 0)")
-print("")
-print("Advanced Settings:")
-print("eero.camlock.smoothing = true")
-print("eero.camlock.wallCheck = true")
-print("eero.camlock.teamCheck = true")
-print("eero.camlock.highlightTarget = true")
-print("eero.camlock.debug = true")
+print("Eero Camlock loaded!")
+print("Usage examples:")
+print("local camlock = eero.camlock")
+print("camlock.enabled = true/false")
+print("camlock.FOVRadius = 120")
+print("camlock.useFOV = true/false")
+print("camlock.autoPrediction = true/false")
+print("camlock.enablePrediction = true/false")
+print("camlock.predictionValue = 0.107")
+print("camlock.notifications = true/false")
+
+-- Return the module for local usage
+return eero.camlock
