@@ -19,26 +19,26 @@ local eeroCamlock = {
     
     -- FOV Settings
     FOVRadius = 120,
-    useFOV = true,
-    showFOV = true,
+    useFOV = false,
+    showFOV = false,
     FOVColor = Color3.fromRGB(0, 170, 255),
     FOVThickness = 1.5,
     FOVTransparency = 0.6,
     FOVFilled = false,
     
     -- Prediction Settings
-    autoPrediction = true,
-    enablePrediction = true,
+    autoPrediction = false,
+    enablePrediction = false,
     predictionValue = 0.107,
     
     -- Notification Settings
-    notifications = true,
+    notifications = false,
     notificationColor = Color3.fromRGB(85, 255, 127),
     notificationDuration = 1.5,
     notificationSize = 15,
     
     -- Display Settings
-    showPingDisplay = true,
+    showPingDisplay = false,
     pingDisplaySize = 16,
     pingDisplayColor = Color3.fromRGB(255, 255, 255),
     pingDisplayPosition = Vector2.new(0.5, 0.90), -- 0-1 screen percentage
@@ -50,7 +50,7 @@ local eeroCamlock = {
     -- Advanced Settings
     wallCheck = false, -- Check if target is behind walls
     teamCheck = false, -- Don't target teammates
-    aliveCheck = true, -- Don't target dead players
+    aliveCheck = false, -- Don't target dead players
     maxDistance = math.huge, -- Maximum distance to target
     
     -- Visual Settings
@@ -397,4 +397,3 @@ print("eero.camlock.wallCheck = true")
 print("eero.camlock.teamCheck = true")
 print("eero.camlock.highlightTarget = true")
 print("eero.camlock.debug = true")
-print("")
