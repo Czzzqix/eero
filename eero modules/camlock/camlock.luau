@@ -6,20 +6,8 @@ local Stats = game:GetService("Stats")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
---// Get or create the global Eero table
-if not getgenv().eero then
-    getgenv().eero = {}
-end
-
-local eero = getgenv().eero
-
---// Initialize camlock module if it doesn't exist
-if not eero.camlock then
-    eero.camlock = {}
-end
-
 --// Camlock Settings
-local eeroCamlock = {
+local camlockSettings = {
     -- Main Settings
     enabled = false,
     keybind = Enum.KeyCode.E,
@@ -69,53 +57,35 @@ local eeroCamlock = {
     debug = false
 }
 
--- Expose settings to global
-eero.camlock = eeroCamlock
-
---// Print setup message
-print("Eero Camlock loaded!")
-print("Usage examples:")
-print("local camlock = eero.camlock")
-print("camlock.enabled = true/false")
-print("camlock.FOVRadius = 120")
-print("camlock.useFOV = true/false")
-print("camlock.autoPrediction = true/false")
-print("camlock.enablePrediction = true/false")
-print("camlock.predictionValue = 0.107")
-print("camlock.notifications = true/false")
-
--- Return the module for local usage
-return eero.camlock
-
 --// State
 local Target = nil
 local CurrentCFrame = nil
 
 --// Debug Function
 local function Debug(message)
-    if eeroCamlock.debug then
-        print("[Eero Debug]: " .. tostring(message))
+    if camlockSettings.debug then
+        print("[Eero Camlock Debug]: " .. tostring(message))
     end
 end
 
 --// Notification Function
 local function Notify(text, color, duration, size)
-    if not eeroCamlock.notifications then return end
+    if not camlockSettings.notifications then return end
     
     task.spawn(function()
         local notif = Drawing.new("Text")
         notif.Text = text
-        notif.Size = size or eeroCamlock.notificationSize
+        notif.Size = size or camlockSettings.notificationSize
         notif.Font = 2
         notif.Center = true
         notif.Outline = true
-        notif.Color = color or eeroCamlock.notificationColor
+        notif.Color = color or camlockSettings.notificationColor
         notif.Transparency = 1
         notif.Visible = true
 
         notif.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y * 0.85)
 
-        task.wait(duration or eeroCamlock.notificationDuration)
+        task.wait(duration or camlockSettings.notificationDuration)
 
         for i = 1, 15 do
             task.wait(0.03)
@@ -137,7 +107,7 @@ local TargetHighlight = nil
 
 --// Wall Check Function
 local function IsWallBetween(start, target)
-    if not eeroCamlock.wallCheck then return false end
+    if not camlockSettings.wallCheck then return false end
     
     local raycastParams = RaycastParams.new()
     raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
@@ -149,13 +119,13 @@ end
 
 --// Team Check Function
 local function IsSameTeam(player)
-    if not eeroCamlock.teamCheck then return false end
+    if not camlockSettings.teamCheck then return false end
     return player.Team == LocalPlayer.Team
 end
 
 --// Alive Check Function
 local function IsPlayerAlive(player)
-    if not eeroCamlock.aliveCheck then return true end
+    if not camlockSettings.aliveCheck then return true end
     
     local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
     return humanoid and humanoid.Health > 0
@@ -195,18 +165,18 @@ end
 --// Get Closest Player in FOV
 local function GetClosestTargetInFOV()
     local closest = nil
-    local shortestDistance = eeroCamlock.useFOV and eeroCamlock.FOVRadius or math.huge
+    local shortestDistance = camlockSettings.useFOV and camlockSettings.FOVRadius or math.huge
     local mousePos = UserInputService:GetMouseLocation()
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(eeroCamlock.aimPart) then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(camlockSettings.aimPart) then
             -- Check team
             if IsSameTeam(player) then continue end
             
             -- Check if alive
             if not IsPlayerAlive(player) then continue end
             
-            local part = player.Character[eeroCamlock.aimPart]
+            local part = player.Character[camlockSettings.aimPart]
             local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
             
             if onScreen then
@@ -214,7 +184,7 @@ local function GetClosestTargetInFOV()
                 local worldDistance = (Camera.CFrame.Position - part.Position).Magnitude
                 
                 -- Check max distance
-                if worldDistance > eeroCamlock.maxDistance then continue end
+                if worldDistance > camlockSettings.maxDistance then continue end
                 
                 -- Check wall
                 if IsWallBetween(Camera.CFrame.Position, part) then continue end
@@ -237,11 +207,11 @@ local function UpdateTargetHighlight()
         TargetHighlight = nil
     end
     
-    if eeroCamlock.highlightTarget and Target then
+    if camlockSettings.highlightTarget and Target then
         TargetHighlight = Drawing.new("Circle")
         TargetHighlight.Radius = 8
         TargetHighlight.Thickness = 2
-        TargetHighlight.Color = eeroCamlock.highlightColor
+        TargetHighlight.Color = camlockSettings.highlightColor
         TargetHighlight.Filled = false
         TargetHighlight.Transparency = 0.8
         TargetHighlight.Visible = true
@@ -250,9 +220,9 @@ end
 
 --// Toggle Lock
 UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == eeroCamlock.keybind then
-        if eeroCamlock.enabled then
-            eeroCamlock.enabled = false
+    if not processed and input.KeyCode == camlockSettings.keybind then
+        if camlockSettings.enabled then
+            camlockSettings.enabled = false
             Target = nil
             Debug("Camlock disabled via keybind")
             print("Camlock: OFF")
@@ -261,7 +231,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
             local found = GetClosestTargetInFOV()
             if found then
                 Target = found
-                eeroCamlock.enabled = true
+                camlockSettings.enabled = true
                 local targetPlayer = Players:GetPlayerFromCharacter(found.Parent)
                 Debug("Camlock enabled, target: " .. (targetPlayer and targetPlayer.Name or "Unknown"))
                 print("Camlock: ON")
@@ -272,7 +242,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
             else
                 Debug("No valid target found")
                 print("No target found.")
-                eeroCamlock.enabled = false
+                camlockSettings.enabled = false
             end
         end
     end
@@ -293,7 +263,7 @@ end
 
 --// Smooth Camera Function
 local function SmoothCamera(targetCFrame)
-    if not eeroCamlock.smoothing then
+    if not camlockSettings.smoothing then
         return targetCFrame
     end
     
@@ -301,7 +271,7 @@ local function SmoothCamera(targetCFrame)
         CurrentCFrame = Camera.CFrame
     end
     
-    CurrentCFrame = CurrentCFrame:Lerp(targetCFrame, eeroCamlock.smoothingFactor)
+    CurrentCFrame = CurrentCFrame:Lerp(targetCFrame, camlockSettings.smoothingFactor)
     return CurrentCFrame
 end
 
@@ -311,39 +281,39 @@ RunService.RenderStepped:Connect(function()
     
     -- Update FOV Circle
     FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
-    FOVCircle.Radius = eeroCamlock.FOVRadius
-    FOVCircle.Thickness = eeroCamlock.FOVThickness
-    FOVCircle.Color = eeroCamlock.FOVColor
-    FOVCircle.Filled = eeroCamlock.FOVFilled
-    FOVCircle.Transparency = eeroCamlock.FOVTransparency
-    FOVCircle.Visible = eeroCamlock.showFOV and eeroCamlock.useFOV
+    FOVCircle.Radius = camlockSettings.FOVRadius
+    FOVCircle.Thickness = camlockSettings.FOVThickness
+    FOVCircle.Color = camlockSettings.FOVColor
+    FOVCircle.Filled = camlockSettings.FOVFilled
+    FOVCircle.Transparency = camlockSettings.FOVTransparency
+    FOVCircle.Visible = camlockSettings.showFOV and camlockSettings.useFOV
 
     -- Get live ping and prediction
     local rawPing = GetLivePing()
-    local PredictionFactor = eeroCamlock.autoPrediction and GetPrediction(rawPing) or eeroCamlock.predictionValue
+    local PredictionFactor = camlockSettings.autoPrediction and GetPrediction(rawPing) or camlockSettings.predictionValue
 
     -- Update prediction display
-    if eeroCamlock.showPingDisplay then
+    if camlockSettings.showPingDisplay then
         PredDisplay.Position = Vector2.new(
-            Camera.ViewportSize.X * eeroCamlock.pingDisplayPosition.X,
-            Camera.ViewportSize.Y * eeroCamlock.pingDisplayPosition.Y
+            Camera.ViewportSize.X * camlockSettings.pingDisplayPosition.X,
+            Camera.ViewportSize.Y * camlockSettings.pingDisplayPosition.Y
         )
-        PredDisplay.Size = eeroCamlock.pingDisplaySize
-        PredDisplay.Color = eeroCamlock.pingDisplayColor
+        PredDisplay.Size = camlockSettings.pingDisplaySize
+        PredDisplay.Color = camlockSettings.pingDisplayColor
         PredDisplay.Center = true
         PredDisplay.Outline = true
         PredDisplay.Font = 2
         PredDisplay.Visible = true
         
-        local predType = eeroCamlock.autoPrediction and "auto" or "manual"
-        local predStatus = eeroCamlock.enablePrediction and predType or "off"
+        local predType = camlockSettings.autoPrediction and "auto" or "manual"
+        local predStatus = camlockSettings.enablePrediction and predType or "off"
         PredDisplay.Text = string.format("%d ms | %.3f prediction (%s)", rawPing, PredictionFactor, predStatus)
     else
         PredDisplay.Visible = false
     end
 
     -- Update target highlight
-    if eeroCamlock.highlightTarget and Target and TargetHighlight then
+    if camlockSettings.highlightTarget and Target and TargetHighlight then
         local screenPos, onScreen = Camera:WorldToViewportPoint(Target.Position)
         if onScreen then
             TargetHighlight.Position = Vector2.new(screenPos.X, screenPos.Y)
@@ -354,9 +324,9 @@ RunService.RenderStepped:Connect(function()
     end
 
     -- Camlock logic
-    if eeroCamlock.enabled then
+    if camlockSettings.enabled then
         if not Target or not Target:IsDescendantOf(workspace) then
-            eeroCamlock.enabled = false
+            camlockSettings.enabled = false
             Target = nil
             Debug("Target lost - no longer in workspace")
             print("Target lost. Camlock OFF.")
@@ -368,7 +338,7 @@ RunService.RenderStepped:Connect(function()
         local targetPlayer = Players:GetPlayerFromCharacter(Target.Parent)
         if targetPlayer then
             if IsSameTeam(targetPlayer) or not IsPlayerAlive(targetPlayer) then
-                eeroCamlock.enabled = false
+                camlockSettings.enabled = false
                 Target = nil
                 Debug("Target no longer valid - team/alive check failed")
                 print("Target no longer valid. Camlock OFF.")
@@ -378,7 +348,7 @@ RunService.RenderStepped:Connect(function()
         end
 
         local targetPos = Target.Position
-        if eeroCamlock.enablePrediction then
+        if camlockSettings.enablePrediction then
             targetPos = Target.Position + (Target.Velocity * PredictionFactor)
         end
         
@@ -403,17 +373,8 @@ game:GetService("Players").PlayerRemoving:Connect(function(player)
     end
 end)
 
---// Print setup message
-print("Eero Camlock loaded!")
-print("Usage examples:")
-print("local camlock = eero.camlock")
-print("camlock.enabled = true/false")
-print("camlock.FOVRadius = 120")
-print("camlock.useFOV = true/false")
-print("camlock.autoPrediction = true/false")
-print("camlock.enablePrediction = true/false")
-print("camlock.predictionValue = 0.107")
-print("camlock.notifications = true/false")
+--// Print module loaded message
+print("Eero Camlock module loaded!")
 
--- Return the module for local usage
-return eero.camlock
+--// Return the settings table (pure module)
+return camlockSettings
