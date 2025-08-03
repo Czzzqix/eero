@@ -290,7 +290,7 @@ RunService.RenderStepped:Connect(function()
     FOVCircleFilled.Thickness = 1
     FOVCircleFilled.Color = camlockSettings.FOVColor
     FOVCircleFilled.Filled = camlockSettings.FOVFilled
-    FOVCircleFilled.Transparency = camlockSettings.FOVTransparency + 0.2 -- More transparent (clearer)
+    FOVCircleFilled.Transparency = camlockSettings.FOVTransparency + 0.4 -- More transparent (clearer)
     FOVCircleFilled.Visible = showFOV and camlockSettings.FOVFilled
     
     -- Outline Circle (Solid border - less transparent)
