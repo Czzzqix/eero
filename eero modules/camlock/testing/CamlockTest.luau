@@ -13,8 +13,9 @@ local camlockSettings = {
     
     -- Main Settings
     enabled = false,
-    keybind = Enum.KeyCode.E,
+    keybind = Enum.KeyCode.E, -- Can be KeyCode or UserInputType (e.g. Enum.UserInputType.MouseButton2)
     aimPart = "Head", -- "Head", "UpperTorso", "LowerTorso", "HumanoidRootPart"
+    aimPartFallbacks = {"HumanoidRootPart", "UpperTorso", "LowerTorso", "Head"}, -- Fallback order if aimPart not found
     holdMode = false, -- Hold to lock instead of toggle
     
     -- FOV Settings
@@ -97,10 +98,18 @@ local function ValidateSettings()
         camlockSettings.aimPart = "Head"
     end
     
-    -- Validate keybind
-    if not camlockSettings.keybind or typeof(camlockSettings.keybind) ~= "EnumItem" then
+    -- Validate keybind (now supports both KeyCode and UserInputType)
+    if not camlockSettings.keybind or 
+       (typeof(camlockSettings.keybind) ~= "EnumItem" or 
+        (camlockSettings.keybind.EnumType ~= Enum.KeyCode and camlockSettings.keybind.EnumType ~= Enum.UserInputType)) then
         warn("[Eero Camlock]: Invalid keybind - Defaulting to 'E'")
         camlockSettings.keybind = Enum.KeyCode.E
+    end
+    
+    -- Validate aimPart fallbacks
+    if typeof(camlockSettings.aimPartFallbacks) ~= "table" then
+        warn("[Eero Camlock]: Invalid aimPartFallbacks - Defaulting to standard fallbacks")
+        camlockSettings.aimPartFallbacks = {"HumanoidRootPart", "UpperTorso", "LowerTorso", "Head"}
     end
     
     -- Validate numeric ranges
@@ -303,36 +312,56 @@ local function GetLivePing()
     return 50 -- Final fallback
 end
 
---// Get Closest Player in FOV
+--// Get Closest Player in FOV (with aimPart fallback)
 local function GetClosestTargetInFOV()
     local closest = nil
     local shortestDistance = camlockSettings.useFOV and camlockSettings.FOVRadius or math.huge
     local mousePos = UserInputService:GetMouseLocation()
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(camlockSettings.aimPart) then
+        if player ~= LocalPlayer and player.Character then
             -- Check team
             if IsSameTeam(player) then continue end
             
             -- Check if alive
             if not IsPlayerAlive(player) then continue end
             
-            local part = player.Character[camlockSettings.aimPart]
-            local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            -- Try to find aimPart with fallback
+            local targetPart = nil
+            local usedPart = camlockSettings.aimPart
             
-            if onScreen then
-                local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                local worldDistance = (Camera.CFrame.Position - part.Position).Magnitude
+            -- First try the configured aimPart
+            if player.Character:FindFirstChild(camlockSettings.aimPart) then
+                targetPart = player.Character[camlockSettings.aimPart]
+            else
+                -- Try fallbacks
+                for _, fallbackPart in ipairs(camlockSettings.aimPartFallbacks) do
+                    if player.Character:FindFirstChild(fallbackPart) then
+                        targetPart = player.Character[fallbackPart]
+                        usedPart = fallbackPart
+                        warn("[Eero Camlock]: " .. camlockSettings.aimPart .. " not found on " .. player.Name .. ", using " .. fallbackPart)
+                        break
+                    end
+                end
+            end
+            
+            if targetPart then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
                 
-                -- Check max distance
-                if worldDistance > camlockSettings.maxDistance then continue end
-                
-                -- Check wall
-                if IsWallBetween(Camera.CFrame.Position, part) then continue end
-                
-                if distance <= shortestDistance then
-                    closest = part
-                    shortestDistance = distance
+                if onScreen then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    local worldDistance = (Camera.CFrame.Position - targetPart.Position).Magnitude
+                    
+                    -- Check max distance
+                    if worldDistance > camlockSettings.maxDistance then continue end
+                    
+                    -- Check wall
+                    if IsWallBetween(Camera.CFrame.Position, targetPart) then continue end
+                    
+                    if distance <= shortestDistance then
+                        closest = targetPart
+                        shortestDistance = distance
+                    end
                 end
             end
         end
@@ -359,9 +388,19 @@ local function UpdateTargetHighlight()
     end
 end
 
+--// Input matching function (handles both KeyCode and UserInputType)
+local function DoesInputMatch(input, keybind)
+    if keybind.EnumType == Enum.KeyCode then
+        return input.KeyCode == keybind
+    elseif keybind.EnumType == Enum.UserInputType then
+        return input.UserInputType == keybind
+    end
+    return false
+end
+
 --// Toggle Lock
 Connections.InputBegan = UserInputService.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == camlockSettings.keybind then
+    if not processed and DoesInputMatch(input, camlockSettings.keybind) then
         if camlockSettings.holdMode then
             -- Hold mode: enable on press
             if not camlockSettings.enabled then
@@ -437,7 +476,7 @@ end)
 
 -- Hold mode: release key to disable
 Connections.InputEnded = UserInputService.InputEnded:Connect(function(input, processed)
-    if camlockSettings.holdMode and input.KeyCode == camlockSettings.keybind then
+    if camlockSettings.holdMode and DoesInputMatch(input, camlockSettings.keybind) then
         if camlockSettings.enabled then
             camlockSettings.enabled = false
             local prevPlayer = PreviousTargetPlayer
@@ -723,8 +762,20 @@ local function SetTarget(player)
     if typeof(player) == "Instance" then
         if player:IsA("Player") then
             targetPlayer = player
-            if player.Character and player.Character:FindFirstChild(camlockSettings.aimPart) then
-                targetPart = player.Character[camlockSettings.aimPart]
+            if player.Character then
+                -- Try configured aimPart first
+                if player.Character:FindFirstChild(camlockSettings.aimPart) then
+                    targetPart = player.Character[camlockSettings.aimPart]
+                else
+                    -- Try fallbacks
+                    for _, fallbackPart in ipairs(camlockSettings.aimPartFallbacks) do
+                        if player.Character:FindFirstChild(fallbackPart) then
+                            targetPart = player.Character[fallbackPart]
+                            warn("[Eero Camlock]: " .. camlockSettings.aimPart .. " not found, using " .. fallbackPart)
+                            break
+                        end
+                    end
+                end
             end
         elseif player.Parent and Players:GetPlayerFromCharacter(player.Parent) then
             targetPlayer = Players:GetPlayerFromCharacter(player.Parent)
