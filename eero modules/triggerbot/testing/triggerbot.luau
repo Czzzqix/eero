@@ -283,8 +283,8 @@ local function GetValidTarget()
     if triggerbotSettings.requireCamlockTarget then
         if not camlockModule.settings.enabled then return nil end
         
-        local target = camlockModule:GetTarget()
-        local targetPlayer = camlockModule:GetTargetPlayer()
+        local target = camlockModule.GetTarget()
+        local targetPlayer = camlockModule.GetTargetPlayer()
         
         if not target or not targetPlayer then return nil end
         
