@@ -578,7 +578,7 @@ Connections.RenderStepped = RunService.RenderStepped:Connect(function()
     end
 
     -- Camlock logic
-    if camlockSettings.enabled then
+    if camlockSettings.enabled and not camlockSettings._paused then
         if not Target or not Target:IsDescendantOf(workspace) then
             camlockSettings.enabled = false
             local prevPlayer = PreviousTargetPlayer
@@ -772,6 +772,114 @@ local function SetTarget(player)
     end
 end
 
+-- Dynamic config update function
+local function UpdateSettings(newSettings)
+    if typeof(newSettings) ~= "table" then
+        warn("[Eero Camlock]: UpdateSettings requires a table")
+        return false
+    end
+    
+    local updated = {}
+    for key, value in pairs(newSettings) do
+        if camlockSettings[key] ~= nil then
+            local oldValue = camlockSettings[key]
+            camlockSettings[key] = value
+            updated[key] = {old = oldValue, new = value}
+            Debug("Setting updated: " .. key .. " = " .. tostring(value))
+        else
+            warn("[Eero Camlock]: Unknown setting: " .. tostring(key))
+        end
+    end
+    
+    -- Re-validate settings after update
+    ValidateSettings()
+    
+    print("[Eero Camlock]: Updated " .. #updated .. " settings")
+    return updated
+end
+
+-- Pause/Resume functions
+local function Pause()
+    if not camlockSettings._paused then
+        camlockSettings._paused = true
+        camlockSettings._wasEnabled = camlockSettings.enabled
+        camlockSettings.enabled = false
+        
+        -- Clear current target but don't trigger callbacks
+        Target = nil
+        CurrentCFrame = nil
+        UpdateTargetHighlight()
+        
+        Debug("Camlock paused")
+        print("Camlock: PAUSED")
+    end
+end
+
+local function Resume()
+    if camlockSettings._paused then
+        camlockSettings._paused = false
+        camlockSettings.enabled = camlockSettings._wasEnabled or false
+        camlockSettings._wasEnabled = nil
+        
+        Debug("Camlock resumed")
+        print("Camlock: RESUMED")
+    end
+end
+
+-- Game profile loader
+local GameProfiles = {
+    dahood = {
+        predictionValue = 0.123,
+        aimPart = "UpperTorso",
+        FOVRadius = 100,
+        smoothing = true,
+        smoothingFactor = 0.15,
+        enablePrediction = true,
+        autoPrediction = true
+    },
+    arsenal = {
+        teamCheck = true,
+        aimPart = "Head", 
+        FOVRadius = 80,
+        predictionValue = 0.095,
+        enablePrediction = true,
+        autoPrediction = false
+    },
+    phantom_forces = {
+        aimPart = "Head",
+        FOVRadius = 60,
+        predictionValue = 0.08,
+        smoothing = true,
+        smoothingFactor = 0.25,
+        teamCheck = true
+    },
+    mm2 = {
+        aimPart = "Head",
+        FOVRadius = 90,
+        predictionValue = 0.11,
+        teamCheck = false,
+        aliveCheck = true
+    }
+}
+
+local function LoadProfile(profileName)
+    if typeof(profileName) ~= "string" then
+        warn("[Eero Camlock]: Profile name must be a string")
+        return false
+    end
+    
+    local profile = GameProfiles[profileName:lower()]
+    if not profile then
+        warn("[Eero Camlock]: Unknown profile: " .. profileName)
+        print("Available profiles: " .. table.concat({"dahood", "arsenal", "phantom_forces", "mm2"}, ", "))
+        return false
+    end
+    
+    local updated = UpdateSettings(profile)
+    print("[Eero Camlock]: Loaded '" .. profileName .. "' profile")
+    return updated
+end
+
 --// Create API Table
 local CamlockAPI = {
     -- Settings access
@@ -782,10 +890,19 @@ local CamlockAPI = {
     GetTarget = GetTarget,
     GetTargetPlayer = GetTargetPlayer,
     SetTarget = SetTarget,
+    UpdateSettings = UpdateSettings,
+    Pause = Pause,
+    Resume = Resume,
+    LoadProfile = LoadProfile,
     
     -- Utility functions
     GetLivePing = GetLivePing,
-    GetPrediction = GetPrediction
+    GetPrediction = GetPrediction,
+    
+    -- Game profiles
+    GetAvailableProfiles = function()
+        return {"dahood", "arsenal", "phantom_forces", "mm2"}
+    end
 }
 
 -- Add settings validation to API
