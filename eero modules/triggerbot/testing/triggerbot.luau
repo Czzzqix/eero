@@ -276,12 +276,19 @@ local function ShowFireIndicator()
 end
 
 --// Get Valid Target from Camlock
+--// Get Valid Target from Camlock (CORRECTED VERSION)
 local function GetValidTarget()
     if not camlockModule then return nil end
     
     -- Check if we should require camlock target
     if triggerbotSettings.requireCamlockTarget then
         if not camlockModule.settings.enabled then return nil end
+        
+        -- FIX: Check if the functions exist before calling them
+        if not camlockModule.GetTarget or not camlockModule.GetTargetPlayer then
+            Debug("Camlock module functions not available")
+            return nil
+        end
         
         local target = camlockModule.GetTarget()
         local targetPlayer = camlockModule.GetTargetPlayer()
